@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowBigDown, ArrowBigRight, MicIcon, MoveRight, Volume2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { MouseEventHandler, useEffect, useState } from "react";
 
 export default function Home() {
   const [origin, setOrigin] = useState('fr-FR');
-  const [target, setTarget] = useState('fr-FR');
+  const [target, setTarget] = useState('en-GB');
   const [translatedText, setTranslatedText] = useState('');
   const [retranscription, setRetranscription] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -117,7 +117,25 @@ export default function Home() {
     }
   };
 
-  const handleExplain = async (text: string, targetLang: string) => {
+  async function speak() {
+    const response = await fetch('http://localhost:3001/tts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ input: translatedText }),
+    });
+    if (response.ok) {
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+    } else {
+      console.error('Failed to generate speech');
+    }
+  }
+
+  const handleExplain = async (text: string) => {
     try {
       const response = await fetch(`http://localhost:3001/chat`, {
         method: 'POST',
@@ -125,7 +143,8 @@ export default function Home() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          langue: languageMapping[targetLang],
+          originLang: languageMapping[origin],
+          targetLang: languageMapping[target],
           phrase: text
         })
       });
@@ -145,13 +164,9 @@ export default function Home() {
     }
   }
 
-
-
-
-
   return (
-    <>
-      <div className="flex justify-center items-start w-2/3 h-screen mx-auto mt-10 gap-4">
+    <div className="space-y-4">
+      <div className="flex justify-center items-start w-2/3 mx-auto mt-10 gap-4">
         <div className="w-1/2 flex flex-col items-center gap-4">
           <Select onValueChange={setOrigin} defaultValue={origin}>
             <SelectTrigger>
@@ -171,7 +186,7 @@ export default function Home() {
               <MicIcon onClick={!isListening ? startListening : stopListening} className={`w-5 h-5 ${isListening && 'animate-pulse'}`} />
             </Button>
           </div>
-          <Button onClick={() => translateText(retranscription, target.slice(0, 2))} variant="default" className="w-full" /*className="z-10 absolute top-1/2 -translate-y-1/2 -right-2 translate-x-1/2 rounded-full"*/>
+          <Button onClick={() => translateText(retranscription, target.slice(0, 2))} variant="default" className="w-full" disabled={retranscription.length == 0}>
             Translate
           </Button>
         </div>
@@ -191,15 +206,19 @@ export default function Home() {
           <div className="relative w-full">
             <Textarea value={translatedText} rows={4} readOnly />
             <Button variant={isListening ? "default" : "ghost"} size="icon" className="absolute top-3 right-3">
-              <Volume2 onClick={handleSpeak} />
+              <Volume2 onClick={() => speak()} />
             </Button>
           </div>
+          <Button onClick={() => handleExplain(translatedText)} className="w-full" disabled={translatedText.length == 0}>Details</Button>
         </div>
       </div>
-      <Button onClick={() => handleExplain(translatedText, origin)}>Oui encore moi</Button>
-      <div className="p-4 bg-white shadow rounded-lg">
-        <div dangerouslySetInnerHTML={{ __html: response.split('```').length > 1 ? response.split('```')[1].replace('html', '') : response }} />
-      </div>
-    </>
+      {
+        response.length > 0 && (
+          <div className="p-4 w-2/3 mx-auto shadow rounded-lg">
+            <div dangerouslySetInnerHTML={{ __html: response.split('```').length > 1 ? response.split('```')[1].replace('html', '') : response }} />
+          </div>
+        )
+      }
+    </div >
   )
 }

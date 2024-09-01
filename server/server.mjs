@@ -3,6 +3,8 @@ import cors from 'cors';
 import OpenAI from "openai";
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import path from "path";
+import fs from "fs";
 dotenv.config();
 
 const app = express();
@@ -33,12 +35,35 @@ app.post('/translate', async (req, res) => {
     }
 });
 
+app.post('/tts', async (req, res) => {
+    try {
+        const { input, voice = 'fable', model = 'tts-1' } = req.body;
+        const response = await openai.audio.speech.create({
+            model: model,
+            voice: voice,
+            input: input,
+        });
+
+        const audioBuffer = Buffer.from(await response.arrayBuffer());
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.send(audioBuffer);
+    } catch (error) {
+        console.error('Error generating speech:', error);
+        res.status(500).json({ message: 'Failed to generate speech', error: error.message });
+    }
+})
+
 app.post('/chat', async (req, res) => {
-    const { langue, phrase } = req.body;
+    const { originLang, targetLang, phrase } = req.body;
+    const prompt = `Hello, I need the analysis of the sentence in ${targetLang}(response required in ${originLang}) to be formatted only with essential HTML content tags such as <strong>, <p>, <ul>, <li>, and <h2>. Please avoid including any full HTML document structure like <!DOCTYPE>, <html>, <head>, or <body> tags. Focus the explanation using HTML tags to clearly highlight translations, grammar rules, and meanings directly. Sentence: "${phrase}"
+
+`
+    console.log(prompt);
     try {
         const completion = await openai.chat.completions.create({
             messages: [{
-                role: "system", content: `Hello, I need the analysis of the sentence in ${langue} (response required in ${langue}) to be formatted only with essential HTML content tags such as <strong>, <p>, <ul>, <li>, and <h2>. Please avoid including any full HTML document structure like <!DOCTYPE>, <html>, <head>, or <body> tags. Focus the explanation using HTML tags to clearly highlight translations, grammar rules, and meanings directly. Sentence: "${phrase}"`
+                role: "system",
+                content: prompt
             }],
             model: "gpt-4o-mini",
         });

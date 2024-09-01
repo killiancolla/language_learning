@@ -6,13 +6,87 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowBigDown, ArrowBigRight, MicIcon, MoveRight, Volume2 } from "lucide-react";
 import { MouseEventHandler, useEffect, useState } from "react";
 
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+
+  var SpeechRecognition: {
+    prototype: SpeechRecognition;
+    new(): SpeechRecognition;
+  };
+
+  var webkitSpeechRecognition: {
+    prototype: SpeechRecognition;
+    new(): SpeechRecognition;
+  };
+
+  interface SpeechRecognition extends EventTarget {
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    maxAlternatives: number;
+    serviceURI: string;
+    onaudiostart: (this: SpeechRecognition, ev: Event) => any;
+    onaudioend: (this: SpeechRecognition, ev: Event) => any;
+    onend: (this: SpeechRecognition, ev: Event) => any;
+    onerror: (this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any;
+    onnomatch: (this: SpeechRecognition, ev: SpeechRecognitionEvent) => any;
+    onresult: (this: SpeechRecognition, ev: SpeechRecognitionEvent) => any;
+    onsoundstart: (this: SpeechRecognition, ev: Event) => any;
+    onsoundend: (this: SpeechRecognition, ev: Event) => any;
+    onspeechstart: (this: SpeechRecognition, ev: Event) => any;
+    onspeechend: (this: SpeechRecognition, ev: Event) => any;
+    onstart: (this: SpeechRecognition, ev: Event) => any;
+    abort(): void;
+    start(): void;
+    stop(): void;
+  }
+
+  interface SpeechRecognitionErrorEvent extends Event {
+    error: "no-speech" | "aborted" | "audio-capture" | "network" | "not-allowed" | "service-not-allowed" | "bad-grammar" | "language-not-supported";
+    message: string;
+  }
+
+  interface SpeechRecognitionEvent extends Event {
+    readonly resultIndex: number;
+    readonly results: SpeechRecognitionResultList;
+    readonly interpretation: any;
+    readonly emma: Document;
+  }
+
+  interface SpeechRecognitionResultList {
+    readonly length: number;
+    item(index: number): SpeechRecognitionResult;
+    [index: number]: SpeechRecognitionResult;
+  }
+
+  interface SpeechRecognitionResult {
+    readonly length: number;
+    readonly isFinal: boolean;
+    item(index: number): SpeechRecognitionAlternative;
+    [index: number]: SpeechRecognitionAlternative;
+  }
+
+  interface SpeechRecognitionAlternative {
+    readonly transcript: string;
+    readonly confidence: number;
+  }
+}
+
+export { };
+
+
+
+
 export default function Home() {
   const [origin, setOrigin] = useState('fr-FR');
   const [target, setTarget] = useState('en-GB');
   const [translatedText, setTranslatedText] = useState('');
   const [retranscription, setRetranscription] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState(null);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [response, setResponse] = useState('')
 
   interface LanguageMap {
@@ -34,7 +108,7 @@ export default function Home() {
       recognition.interimResults = true;
       recognition.lang = origin;
 
-      recognition.onresult = async (event) => {
+      recognition.onresult = async (event: SpeechRecognitionEvent) => {
         const transcript = Array.from(event.results)
           .map(result => result[0])
           .map(result => result.transcript)
@@ -50,7 +124,7 @@ export default function Home() {
         setIsListening(false);
       };
 
-      recognition.onerror = function (event) {
+      recognition.onerror = function (event: SpeechRecognitionErrorEvent) {
         if (event.error === 'network') {
           console.error('Erreur de reconnaissance vocale due à un problème réseau.');
           setTimeout(() => {

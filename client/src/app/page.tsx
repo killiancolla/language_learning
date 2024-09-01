@@ -82,7 +82,7 @@ export default function Home() {
 
   const translateText = async (text: String, targetLang: String) => {
     try {
-      const response = await fetch(`http://localhost:3001/translate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/translate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -118,7 +118,7 @@ export default function Home() {
   };
 
   async function speak() {
-    const response = await fetch('http://localhost:3001/tts', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/tts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ export default function Home() {
 
   const handleExplain = async (text: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/chat`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
